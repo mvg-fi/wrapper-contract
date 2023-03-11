@@ -78,15 +78,16 @@ def SwapAndWithdrawSubAsset(
 
     recv0 = RegistryExchange(REGISTRY_EXCHANGE).exchange_multiple(e0._route, e0._swap_params, e0._amount, e0._expected, e0._pools)
     recv1 = RegistryExchange(REGISTRY_EXCHANGE).exchange_multiple(e1._route, e1._swap_params, e1._amount, e1._expected, e1._pools)
+    assert recv1 >= w._fee_amount
 
     # Withdrawal
     if (self.IsETH(w._output_asset)):
-        Bridge(BRIDGE_ADDRESS).release(self, w._extra_a)
+        Bridge(BRIDGE_ADDRESS).release.value(recv0)(self, w._extra_a)
     else:
         Asset(w._output_asset).transferWithExtra(self, recv0, w._extra_a)
     
     if (self.IsETH(w._fee_asset)):
-        Bridge(BRIDGE_ADDRESS).release(self, w._extra_b)
+        Bridge(BRIDGE_ADDRESS).release.value(w._fee_amount)(self, w._extra_b)
     else:
         Asset(w._fee_asset).transferWithExtra(self, w._fee_amount, w._extra_b)
     log SwapAndWithdrawSubAsset(w, e0, e1)
@@ -111,12 +112,12 @@ def SwapAndWithdrawChainAsset(
     
     # Withdrawal
     if (self.IsETH(w._output_asset)):
-        Bridge(BRIDGE_ADDRESS).release(self, w._extra_a)
+        Bridge(BRIDGE_ADDRESS).release.value(recv - w._fee_amount)(self, w._extra_a)
     else:
         Asset(w._output_asset).transferWithExtra(self, recv - w._fee_amount, w._extra_a)
     
     if (self.IsETH(w._fee_asset)):
-        Bridge(BRIDGE_ADDRESS).release(self, w._extra_b)
+        Bridge(BRIDGE_ADDRESS).release.value(w._fee_amount)(self, w._extra_b)
     else:
         Asset(w._fee_asset).transferWithExtra(self, w._fee_amount, w._extra_b)
     log SwapAndWithdrawChainAsset(e, w)
