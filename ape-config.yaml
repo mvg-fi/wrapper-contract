@@ -1,1 +1,13 @@
 name: wrapper-contract
+
+default_ecosystem: ethereum
+
+ethereum:
+  default_network: mainnet
+  mainnet:
+    default_provider: geth
+
+geth:
+  mvm:
+    mainnet:
+      uri: https://geth.mvm.dev

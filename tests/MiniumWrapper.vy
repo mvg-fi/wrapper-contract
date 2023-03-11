@@ -1,21 +1,8 @@
 # @version 0.3.7
-# license GPL
-# Wrapper contract that simplies the bridging process
-
-interface Asset:
-    def balanceOf(_who: address) -> uint256: view
-    def transfer(_to: address, _value: uint256) -> bool : nonpayable
-    def allowance(_owner: address, _spender: address) -> uint256: view
-    def approve(_spender: address, _value: uint256) -> bool: nonpayable
-    def transferFrom(_from: address, _to: address, _value: uint256) -> bool : nonpayable
-    def transferWithExtra(_to: address, _value: uint256, _extra: bytes32) -> bool: nonpayable
-
-interface Bridge:
-    def release(receiver: address, input: bytes32): payable
-
-interface RegistryExchange:
-    def exchange_multiple(_route: address[9],_swap_params: uint256[3][4],_amount: uint256,_expected: uint256,_pools: address[4]) -> uint256: payable
-
+"""
+@title MiniumWrapper
+@license GPL-3.0
+"""
 event SwapAndWithdrawChainAsset:
     w: WithdrawalArguments          # Params for withdrawal
     e: ExchangeMultiplyArguments    # Params for exchange chain asset
@@ -24,6 +11,18 @@ event SwapAndWithdrawSubAsset:
     w: WithdrawalArguments          # Params for withdrawal
     e0: ExchangeMultiplyArguments   # Params for exchange withdrawal asset
     e1: ExchangeMultiplyArguments   # Params for exchange fee asset
+
+interface Asset:
+    def balanceOf(_who: address) -> uint256: view
+    def allowance(_owner: address, _spender: address) -> uint256: view
+    def transferFrom(_from: address, _to: address, _value: uint256) -> bool : nonpayable
+    def transferWithExtra(_to: address, _value: uint256, _extra: bytes32) -> bool: nonpayable
+
+interface Bridge:
+    def release(receiver: address, input: bytes32): payable
+
+interface RegistryExchange:
+    def exchange_multiple(_route: address[9],_swap_params: uint256[3][4],_amount: uint256,_expected: uint256,_pools: address[4]) -> uint256: payable
 
 struct WithdrawalArguments:
     _output_asset: address      # Address of withdrawal asset
@@ -60,25 +59,20 @@ def __init__(
 def IsETH(contract: address) -> bool:
     return contract == ETH_ADDRESS
 
+@nonreentrant('lock')
 @external
-def SwapAndWithdrawChainAsset(
-    e: ExchangeMultiplyArguments,
-    w: WithdrawalArguments,
-):
-    """
-    In case the withdrawal asset == chain asset. e.g ETH -> EOS
-    """
+def SwapAndWithdrawChainAsset(_e: ExchangeMultiplyArguments, _w: WithdrawalArguments):
     assert not self.is_killed  # dev: is killed
 
-    recv: uint256 = 0
-    # If ERC20, transfer into contract
-    if (self.IsETH(e._route[0]) == False):
+    recv: uint256
+    #If ERC20, transfer into contract
+    if (self.IsETH(e._route[0]) == False): 
         Asset(e._route[0]).transferFrom(msg.sender ,self, e._amount)
     
-    # Exchange
+    Exchange
     recv = RegistryExchange(REGISTRY_EXCHANGE).exchange_multiple(e._route, e._swap_params, e._amount, e._expected, e._pools)
     
-    # Withdrawal
+    Withdrawal
     if (self.IsETH(w._output_asset)):
         Bridge(BRIDGE_ADDRESS).release.value(recv - w._fee_amount)(self, w._extra_a)
     else:
@@ -102,8 +96,8 @@ def SwapAndWithdrawSubAsset(
     """
     assert not self.is_killed  # dev: is killed
     
-    recv0: uint256 = 0
-    recv1: uint256 = 0
+    recv0: uint256
+    recv1: uint256
     # If ERC20, transfer into contract
     if (self.IsETH(e._route[0]) == False):
         Asset(e._route[0]).transferFrom(msg.sender, self, e._amount)
